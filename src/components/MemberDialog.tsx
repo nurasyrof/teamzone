@@ -236,10 +236,10 @@ export function MemberDialog({ open, memberId, onClose }: Props) {
               key={i}
               type="button"
               onClick={() => toggleDay(i)}
-              className={`w-[42px] rounded-lg border py-[7px] text-xs font-bold ${
+              className={`w-[42px] border py-[7px] text-xs font-bold ${
                 days.includes(i)
-                  ? 'border-transparent bg-accent text-ink'
-                  : 'border-line bg-panel2 text-muted'
+                  ? 'border-accent bg-accent text-white'
+                  : 'border-line bg-panel text-muted'
               }`}
             >
               {label.slice(0, 2)}

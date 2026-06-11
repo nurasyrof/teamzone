@@ -101,12 +101,12 @@ export function MapView() {
       <svg
         viewBox={`0 0 ${W} ${H}`}
         preserveAspectRatio="xMidYMid meet"
-        className="block h-auto w-full rounded-[10px] bg-[#0b1426]"
+        className="block h-auto w-full bg-[#e3edf5]"
       >
         <defs>
           <radialGradient id="oceanG" cx="50%" cy="35%" r="80%">
-            <stop offset="0%" stopColor="#13243f" />
-            <stop offset="100%" stopColor="#0b1426" />
+            <stop offset="0%" stopColor="#eef4fa" />
+            <stop offset="100%" stopColor="#d4e1ee" />
           </radialGradient>
         </defs>
         <rect width={W} height={H} fill="url(#oceanG)" />
@@ -117,7 +117,7 @@ export function MapView() {
           width={W}
           height={H}
           preserveAspectRatio="none"
-          opacity={0.55}
+          opacity={0.7}
         />
         <g>
           {graticule.map((l, i) => (
@@ -127,21 +127,21 @@ export function MapView() {
               y1={l.y1}
               x2={l.x2}
               y2={l.y2}
-              stroke="rgba(120,140,200,.10)"
+              stroke="rgba(40,60,100,.08)"
             />
           ))}
         </g>
         <path
           d={term.path}
-          fill="rgba(8,12,30,0.55)"
-          stroke="rgba(120,140,200,.25)"
+          fill="rgba(24,34,64,0.28)"
+          stroke="rgba(40,60,100,0.25)"
           strokeWidth={1}
         />
         <circle cx={term.sunX} cy={term.sunY} r={7} fill="#ffd66b" stroke="#fff3c4" strokeWidth={2} />
         <g>
           {pins.map((p) => (
             <g key={p.id} transform={`translate(${p.x},${p.y})`}>
-              <circle r={6.5} fill={p.color} stroke="#0b1426" strokeWidth={2}>
+              <circle r={6.5} fill={p.color} stroke="#ffffff" strokeWidth={2}>
                 <title>{p.label}</title>
               </circle>
               <circle r={6.5} fill={p.color} opacity={0.35}>
@@ -164,12 +164,12 @@ export function MapView() {
                   y={0}
                   width={p.lblWidth}
                   height={18}
-                  rx={5}
-                  fill="rgba(8,12,22,.78)"
+                  rx={0}
+                  fill="rgba(255,255,255,0.92)"
                   stroke={p.color}
                   strokeWidth={1}
                 />
-                <text x={6} y={13} fill="#fff" fontSize={11} fontWeight={600}>
+                <text x={6} y={13} fill="#1c2230" fontSize={11} fontWeight={600}>
                   {truncate(p.name, 12)} {p.hhmm}
                 </text>
               </g>

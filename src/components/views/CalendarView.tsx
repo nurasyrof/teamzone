@@ -221,13 +221,15 @@ function WeeklyHeatmap() {
                 const cell = grid[h][di];
                 const ratio = cell.c / maxC;
                 const bg =
-                  ratio === 0 ? '#10151e' : `rgba(52,211,153,${0.15 + ratio * 0.8})`;
+                  ratio === 0
+                    ? '#eef0f3'
+                    : `rgba(15,157,107,${0.12 + ratio * 0.82})`;
                 return (
                   <td
                     key={di}
                     title={cell.c > 0 ? cell.names.join(', ') : undefined}
-                    className="h-[17px] w-[13%] rounded-[3px] border border-bg text-center text-[10px] font-bold"
-                    style={{ background: bg, color: ratio > 0.45 ? '#06121f' : '#7d8aa0' }}
+                    className="h-[17px] w-[13%] border border-bg text-center text-[10px] font-bold"
+                    style={{ background: bg, color: ratio > 0.5 ? '#ffffff' : '#374151' }}
                   >
                     {cell.c > 0 ? cell.c : ''}
                   </td>

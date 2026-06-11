@@ -14,9 +14,9 @@ import { initials } from '@/lib/util';
 import { IconButton } from '@/components/ui/Button';
 
 const BADGE_BG: Record<string, string> = {
-  work: 'bg-green/[0.13] text-green',
-  awake: 'bg-amber/[0.13] text-amber',
-  sleep: 'bg-sleep/[0.18] text-[#9fb0d0]',
+  work: 'bg-green/10 text-green',
+  awake: 'bg-amber/10 text-amber',
+  sleep: 'bg-sleep/15 text-[#566173]',
 };
 
 export function NowView({ onEdit }: { onEdit: (id: string) => void }) {
@@ -46,7 +46,7 @@ export function NowView({ onEdit }: { onEdit: (id: string) => void }) {
           <div
             key={m.id}
             onClick={() => onEdit(m.id)}
-            className="group relative cursor-pointer overflow-hidden rounded-card border border-line bg-[linear-gradient(180deg,var(--color-panel)_0%,var(--color-panel2)_140%)] p-4 transition-[0.15s] hover:-translate-y-[2px] hover:border-[#3a4456] hover:shadow-float"
+            className="group relative cursor-pointer overflow-hidden border border-line bg-panel p-4 transition-colors hover:border-accent"
           >
             <div
               className="absolute bottom-0 left-0 top-0 w-[5px]"

@@ -55,16 +55,9 @@ export function Header({ onAdd }: { onAdd: () => void }) {
   }
 
   return (
-    <header className="sticky top-0 z-30 flex flex-wrap items-center gap-4 border-b border-line bg-[rgba(14,17,23,0.7)] px-[22px] py-4 backdrop-blur-[8px]">
+    <header className="sticky top-0 z-30 flex flex-wrap items-center gap-4 border-b border-line bg-[rgba(246,247,249,0.85)] px-[22px] py-4 backdrop-blur-[8px]">
       <div className="flex items-center gap-[10px] text-[17px] font-bold tracking-[0.2px]">
-        <div
-          className="h-[26px] w-[26px] rounded-full"
-          style={{
-            background:
-              'conic-gradient(from 200deg,#4f9dff,#6c7cff,#34d399,#4f9dff)',
-            boxShadow: '0 0 14px rgba(79,157,255,.5)',
-          }}
-        />
+        <div className="h-[22px] w-[22px] bg-accent" />
         TeamZone
       </div>
 
@@ -73,14 +66,14 @@ export function Header({ onAdd }: { onAdd: () => void }) {
         {f.parts.dateStr} · {shortTz(refTz)}
       </div>
 
-      <div className="flex gap-[2px] rounded-xl border border-line bg-panel p-1">
+      <div className="flex gap-[2px] border border-line bg-panel p-1">
         {TABS.map((t) => (
           <button
             key={t.id}
             onClick={() => setView(t.id)}
-            className={`rounded-[9px] px-[14px] py-[7px] text-[13px] font-semibold transition-[0.15s] ${
+            className={`px-[14px] py-[7px] text-[13px] font-semibold transition-colors ${
               view === t.id
-                ? 'bg-accent text-ink shadow-[0_2px_8px_rgba(79,157,255,0.4)]'
+                ? 'bg-accent text-white'
                 : 'text-muted hover:text-text'
             }`}
           >

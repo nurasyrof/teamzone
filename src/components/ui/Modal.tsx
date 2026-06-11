@@ -23,7 +23,7 @@ export function Modal({ open, title, onClose, children, footer }: ModalProps) {
 
   return (
     <div
-      className="fixed inset-0 z-50 grid place-items-center bg-[rgba(4,7,12,0.66)] p-5 backdrop-blur-[3px]"
+      className="fixed inset-0 z-50 grid place-items-center bg-[rgba(20,24,40,0.35)] p-5 backdrop-blur-[2px]"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -32,7 +32,7 @@ export function Modal({ open, title, onClose, children, footer }: ModalProps) {
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="max-h-[90vh] w-[min(520px,100%)] overflow-auto rounded-[18px] border border-line bg-panel shadow-float"
+        className="max-h-[90vh] w-[min(520px,100%)] overflow-auto border border-line bg-panel shadow-float"
       >
         <h2 className="m-0 border-b border-line px-[22px] py-5 text-[17px] font-semibold">
           {title}
