@@ -1,0 +1,126 @@
+@import 'tailwindcss';
+
+/* ============================ Design tokens ============================ */
+/* Ported from the original TeamZone palette. These generate Tailwind
+   utilities such as bg-panel, text-muted, border-line, text-green, etc. */
+@theme {
+  --color-bg: #0e1117;
+  --color-panel: #161b22;
+  --color-panel2: #1c2230;
+  --color-line: #2a3140;
+  --color-text: #e6edf3;
+  --color-muted: #8b97a8;
+  --color-accent: #4f9dff;
+  --color-accent2: #6c7cff;
+  --color-green: #34d399;
+  --color-amber: #fbbf24;
+  --color-sleep: #5b6b8c;
+  --color-red: #f87171;
+  --color-ink: #06121f; /* dark text used on bright accent fills */
+
+  --radius-card: 14px;
+
+  --shadow-float: 0 8px 30px rgba(0, 0, 0, 0.35);
+}
+
+/* ============================ Base ============================ */
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+  html,
+  body,
+  #root {
+    margin: 0;
+    height: 100%;
+  }
+  body {
+    background: radial-gradient(
+      1200px 600px at 80% -10%,
+      #1a2230 0%,
+      var(--color-bg) 55%
+    );
+    color: var(--color-text);
+    font: 14px/1.5 -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+      Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  button {
+    font-family: inherit;
+    cursor: pointer;
+  }
+  input,
+  select {
+    font-family: inherit;
+    color: var(--color-text);
+  }
+}
+
+/* ============================ Component helpers ============================ */
+/* A few patterns that are clearer as classes than long utility chains. */
+@layer components {
+  .tnum {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Daily-timeline track: 24 faint hour columns. */
+  .tl-track {
+    position: relative;
+    height: 26px;
+    border-radius: 7px;
+    overflow: hidden;
+    background: repeating-linear-gradient(
+      90deg,
+      #10151e 0,
+      #10151e calc(100% / 24 - 1px),
+      #1b2230 calc(100% / 24 - 1px),
+      #1b2230 calc(100% / 24)
+    );
+  }
+  .tl-band {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    border-radius: 6px;
+    background: linear-gradient(
+      180deg,
+      rgba(52, 211, 153, 0.55),
+      rgba(52, 211, 153, 0.3)
+    );
+    border: 1px solid rgba(52, 211, 153, 0.6);
+  }
+  .tl-band.awake {
+    background: linear-gradient(
+      180deg,
+      rgba(251, 191, 36, 0.3),
+      rgba(251, 191, 36, 0.15)
+    );
+    border-color: rgba(251, 191, 36, 0.45);
+    z-index: 0;
+  }
+  .tl-nowline {
+    position: absolute;
+    top: -4px;
+    bottom: -4px;
+    width: 2px;
+    background: var(--color-red);
+    z-index: 5;
+    box-shadow: 0 0 8px var(--color-red);
+  }
+  .tl-nowline::before {
+    content: '';
+    position: absolute;
+    top: -3px;
+    left: -3px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--color-red);
+  }
+
+  /* Range input themed to the accent colour. */
+  .scrub-range {
+    accent-color: var(--color-accent);
+    height: 4px;
+  }
+}
