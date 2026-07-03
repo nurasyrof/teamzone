@@ -15,6 +15,8 @@ interface TeamzoneState {
   /** Anchors the navbar clock and relative labels only — never the instant. */
   referenceZoneId: string;
   roleFilter: string;
+  /** Show only people whose local time is within working hours (06–18). */
+  daytimeOnly: boolean;
   theme: Theme;
 
   setTeamName: (name: string) => void;
@@ -28,6 +30,7 @@ interface TeamzoneState {
   resetToNow: () => void;
   setReferenceZone: (zoneId: string) => void;
   setRoleFilter: (role: string) => void;
+  setDaytimeOnly: (on: boolean) => void;
   setTheme: (theme: Theme) => void;
 }
 
@@ -63,6 +66,7 @@ export const useStore = create<TeamzoneState>()(
       scrubMinutes: 0,
       referenceZoneId: browserZone,
       roleFilter: '',
+      daytimeOnly: false,
       theme: 'auto',
 
       setTeamName: (name) => set({ teamName: name.trim() || 'My team' }),
@@ -100,6 +104,7 @@ export const useStore = create<TeamzoneState>()(
 
       setReferenceZone: (zoneId) => set({ referenceZoneId: zoneId }),
       setRoleFilter: (role) => set({ roleFilter: role }),
+      setDaytimeOnly: (on) => set({ daytimeOnly: on }),
       setTheme: (theme) => set({ theme }),
     }),
     {
@@ -109,6 +114,7 @@ export const useStore = create<TeamzoneState>()(
         people: s.people,
         referenceZoneId: s.referenceZoneId,
         roleFilter: s.roleFilter,
+        daytimeOnly: s.daytimeOnly,
         theme: s.theme,
       }),
     },

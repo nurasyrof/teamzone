@@ -15,10 +15,19 @@ import {
 } from '@dnd-kit/sortable';
 import { useStore } from '@/store/useStore';
 import { PersonRow } from './PersonRow';
-import { IconPencil, IconPlus } from './icons';
+import {
+  IconDownload,
+  IconPencil,
+  IconPlus,
+  IconToggleOff,
+  IconToggleOn,
+  IconUpload,
+} from './icons';
 import { Tooltip } from './ui/Tooltip';
 import { Dropdown } from './ui/Dropdown';
 import { downloadCsv, parseCsvFile } from '@/lib/csv';
+import { hourInZone } from '@/lib/time';
+import { cn } from '@/lib/cn';
 
 interface PersonListProps {
   onAdd: () => void;
@@ -31,6 +40,9 @@ export function PersonList({ onAdd, onEdit }: PersonListProps) {
   const people = useStore((s) => s.people);
   const roleFilter = useStore((s) => s.roleFilter);
   const setRoleFilter = useStore((s) => s.setRoleFilter);
+  const daytimeOnly = useStore((s) => s.daytimeOnly);
+  const setDaytimeOnly = useStore((s) => s.setDaytimeOnly);
+  const referenceInstant = useStore((s) => s.referenceInstant);
   const movePerson = useStore((s) => s.movePerson);
   const importPeople = useStore((s) => s.importPeople);
 
@@ -57,7 +69,14 @@ export function PersonList({ onAdd, onEdit }: PersonListProps) {
     () => [...new Set(people.map((p) => p.role).filter(Boolean))].sort(),
     [people],
   );
-  const visible = roleFilter ? people.filter((p) => p.role === roleFilter) : people;
+  const isDaytime = (zone: string) => {
+    const h = hourInZone(referenceInstant, zone);
+    return h >= 6 && h < 18;
+  };
+  const visible = people.filter(
+    (p) =>
+      (!roleFilter || p.role === roleFilter) && (!daytimeOnly || isDaytime(p.timezoneId)),
+  );
 
   const onDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -112,6 +131,26 @@ export function PersonList({ onAdd, onEdit }: PersonListProps) {
           </h2>
         )}
         <div className="ml-auto flex items-center gap-2">
+          <Tooltip label="Show only people in working hours (06:00–18:00 local)">
+            <button
+              type="button"
+              onClick={() => setDaytimeOnly(!daytimeOnly)}
+              role="switch"
+              aria-checked={daytimeOnly}
+              aria-label="Daytime only"
+              className={cn(
+                'flex items-center gap-1.5 text-xs font-medium',
+                daytimeOnly ? 'text-accent dark:text-grey-100' : 'text-grey-500',
+              )}
+            >
+              {daytimeOnly ? (
+                <IconToggleOn className="size-5" />
+              ) : (
+                <IconToggleOff className="size-5" />
+              )}
+              Daytime only
+            </button>
+          </Tooltip>
           {roles.length > 0 && (
             <Dropdown
               value={roleFilter}
@@ -123,13 +162,14 @@ export function PersonList({ onAdd, onEdit }: PersonListProps) {
               ]}
             />
           )}
-          <Tooltip label="Add people from a CSV file">
+          <Tooltip label="Import people from a CSV file">
             <button
               type="button"
               onClick={() => fileRef.current?.click()}
-              className="rounded-lg border border-grey-300 px-2.5 py-1.5 text-xs font-medium text-grey-600 hover:border-accent hover:text-accent dark:border-grey-700 dark:text-grey-300 dark:hover:border-grey-400 dark:hover:text-grey-100"
+              aria-label="Import CSV"
+              className="flex items-center rounded-lg border border-grey-300 p-1.5 text-grey-600 hover:border-accent hover:text-accent dark:border-grey-700 dark:text-grey-300 dark:hover:border-grey-400 dark:hover:text-grey-100"
             >
-              Import CSV
+              <IconUpload className="size-4" />
             </button>
           </Tooltip>
           <Tooltip label="Download the roster as CSV">
@@ -137,9 +177,10 @@ export function PersonList({ onAdd, onEdit }: PersonListProps) {
               type="button"
               onClick={() => downloadCsv(people)}
               disabled={people.length === 0}
-              className="rounded-lg border border-grey-300 px-2.5 py-1.5 text-xs font-medium text-grey-600 hover:border-accent hover:text-accent disabled:opacity-40 dark:border-grey-700 dark:text-grey-300 dark:hover:border-grey-400 dark:hover:text-grey-100"
+              aria-label="Export CSV"
+              className="flex items-center rounded-lg border border-grey-300 p-1.5 text-grey-600 hover:border-accent hover:text-accent disabled:opacity-40 dark:border-grey-700 dark:text-grey-300 dark:hover:border-grey-400 dark:hover:text-grey-100"
             >
-              Export
+              <IconDownload className="size-4" />
             </button>
           </Tooltip>
           <input

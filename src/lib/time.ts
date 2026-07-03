@@ -35,6 +35,11 @@ export function formatDay(instantMs: number, zone: string): string {
   return `${get('weekday')}, ${get('day')} ${get('month')}`;
 }
 
+/** Local hour of day (0–23) in the given zone. */
+export function hourInZone(instantMs: number, zone: string): number {
+  return Number(getFormatter(zone, { hour: 'numeric', hourCycle: 'h23' }).format(instantMs));
+}
+
 /** Calendar date "2026-07-02" in the given zone, for same-day comparisons. */
 function isoDate(instantMs: number, zone: string): string {
   const parts = getFormatter(zone, { year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(instantMs);
