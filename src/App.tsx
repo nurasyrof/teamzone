@@ -67,6 +67,18 @@ export default function App() {
             <PersonList onAdd={openAdd} onEdit={openEdit} />
           </section>
         </div>
+
+        <footer className="mt-10 text-center text-xs text-grey-400 dark:text-grey-600">
+          2026 · Built by{' '}
+          <a
+            href="https://nurasyrof.com"
+            target="_blank"
+            rel="noreferrer"
+            className="underline underline-offset-2 hover:text-accent dark:hover:text-grey-300"
+          >
+            Asyrof
+          </a>
+        </footer>
       </main>
 
       <div className="fixed inset-x-0 bottom-0 z-20 border-t border-grey-200 bg-white/90 backdrop-blur dark:border-grey-800 dark:bg-grey-950/90">
