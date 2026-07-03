@@ -20,8 +20,9 @@ Durable decisions live in [`CLAUDE.md`](./CLAUDE.md); the build plan in
   (Yesterday/Tomorrow) when their calendar day differs.
 - **Drag to reorder** (`@dnd-kit`), edit and remove per row.
 - **Filters** — a role dropdown, plus a **"Daytime only" toggle** that hides
-  everyone outside working hours (06:00–18:00 local). Both combine and both
-  react to the time scrubber.
+  everyone outside working hours (06:00–18:00 local). Both combine, both
+  react to the time scrubber, and both sit in a consistent framed control
+  row alongside the labeled **Import** button.
 - A fresh session starts with **"You"** in your own timezone, already pinned
   to the globe.
 
@@ -39,8 +40,9 @@ Durable decisions live in [`CLAUDE.md`](./CLAUDE.md); the build plan in
 
 - One reference instant drives every clock and the terminator — nothing can
   drift out of sync.
-- **Fixed bottom scrubber** previews the whole team up to ±12h from now, with
-  a LIVE indicator and reset-to-now button.
+- **Fixed bottom scrubber** previews the whole team up to ±12h from now — a
+  custom slider whose drag thumb is the scrub icon — with a LIVE indicator
+  and reset-to-now button.
 - **Searchable reference-timezone picker** in the navbar: type a city, zone
   ID, or UTC offset to filter, or scroll the full list. Relative labels and
   day markers re-anchor to whatever zone you pick.
@@ -60,9 +62,10 @@ Durable decisions live in [`CLAUDE.md`](./CLAUDE.md); the build plan in
 - **Design system**: minimalist greyscale with a single `#1C4746` teal
   accent; Plus Jakarta Sans headings + Inter body, self-hosted via
   Fontsource; design tokens as CSS variables (Tailwind v4 `@theme`).
-- **Custom SVG icon set** (globe logo, theme, upload/download, toggles,
-  pencil, drag handle, …) inlined with `currentColor` so icons follow text
-  color and dark mode automatically.
+- **Custom SVG icon set** (globe logo, theme trio, upload, toggles, pencil,
+  drag handle, scrub slider, reset, …) inlined with `currentColor` so icons
+  follow text color and dark mode automatically — the scrub icon even doubles
+  as the range slider's thumb via a CSS mask.
 - **Auto-dark theme** — follows daylight in the reference zone (scrub into
   night and watch it flip), with a manual light/dark override in the navbar.
 - **Tooltips on every control**, shown on hover and keyboard focus.
