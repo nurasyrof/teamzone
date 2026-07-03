@@ -157,7 +157,10 @@ export function PersonList({ onAdd, onEdit }: PersonListProps) {
               ]}
             />
           )}
-          <Tooltip label="Import people from a CSV file">
+          <Tooltip
+            align="right"
+            label="Import a CSV with columns: name, role, timezoneId, city, lat, lng. name + timezoneId (IANA, e.g. Asia/Jakarta) are required; lat/lng place the globe pin."
+          >
             <button
               type="button"
               onClick={() => fileRef.current?.click()}
