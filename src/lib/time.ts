@@ -1,245 +1,108 @@
-import type { Member, Status } from '@/types';
-import { CITY } from '@/lib/cities';
-import { DAYS, hashStr } from '@/lib/util';
+/** All timezone math goes through Intl so it stays DST-correct. */
 
-/* ============================ Zone discovery ============================ */
-export function guessLocalTz(): string {
+const formatterCache = new Map<string, Intl.DateTimeFormat>();
+
+function getFormatter(zone: string, options: Intl.DateTimeFormatOptions): Intl.DateTimeFormat {
+  const key = zone + JSON.stringify(options);
+  let fmt = formatterCache.get(key);
+  if (!fmt) {
+    fmt = new Intl.DateTimeFormat('en-GB', { ...options, timeZone: zone });
+    formatterCache.set(key, fmt);
+  }
+  return fmt;
+}
+
+export const browserZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+export function isValidZone(zone: string): boolean {
   try {
-    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
-  } catch {
-    return 'UTC';
-  }
-}
-
-/** All IANA zones the runtime knows, falling back to our city table. */
-export function supportedTimeZones(): string[] {
-  try {
-    const zones = Intl.supportedValuesOf('timeZone');
-    if (zones.length) return zones;
-  } catch {
-    /* older runtimes */
-  }
-  return Object.keys(CITY);
-}
-
-/** Last path segment of a zone, humanised: "Asia/Kuala_Lumpur" → "Kuala Lumpur". */
-export function shortTz(tz: string): string {
-  return (tz.split('/').pop() || tz).replace(/_/g, ' ');
-}
-
-/* ============================ Offset & parts ============================ */
-/** Offset (minutes) of a timezone from UTC at a given instant. DST-correct.
- *  Cached at hour granularity since offsets only change at DST boundaries. */
-const offCache = new Map<string, number>();
-export function tzOffsetMin(tz: string, date: Date): number {
-  const key = tz + '|' + Math.floor(date.getTime() / 3600000);
-  const cached = offCache.get(key);
-  if (cached !== undefined) return cached;
-  let val: number;
-  try {
-    const dtf = new Intl.DateTimeFormat('en-US', {
-      timeZone: tz,
-      hour12: false,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    });
-    const p: Record<string, string> = {};
-    for (const part of dtf.formatToParts(date)) p[part.type] = part.value;
-    const hh = p.hour === '24' ? 0 : +p.hour;
-    const asUTC = Date.UTC(+p.year, +p.month - 1, +p.day, hh, +p.minute, +p.second);
-    val = Math.round((asUTC - date.getTime()) / 60000);
-  } catch {
-    val = 0;
-  }
-  offCache.set(key, val);
-  return val;
-}
-
-export interface TzParts {
-  weekday: string;
-  /** Weekday index 0–6 (Sun–Sat), or -1 if unknown. */
-  wd: number;
-  y: number;
-  mo: number;
-  d: number;
-  h: number;
-  mi: number;
-  /** e.g. "Mon 6/11". */
-  dateStr: string;
-}
-
-/** Wall-clock parts of an instant rendered in a timezone. */
-export function tzParts(tz: string, date: Date): TzParts {
-  const dtf = new Intl.DateTimeFormat('en-US', {
-    timeZone: tz,
-    hour12: false,
-    weekday: 'short',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-  const p: Record<string, string> = {};
-  for (const part of dtf.formatToParts(date)) p[part.type] = part.value;
-  const hh = p.hour === '24' ? 0 : +p.hour;
-  return {
-    weekday: p.weekday,
-    wd: DAYS.indexOf(p.weekday as (typeof DAYS)[number]),
-    y: +p.year,
-    mo: +p.month,
-    d: +p.day,
-    h: hh,
-    mi: +p.minute,
-    dateStr: `${p.weekday} ${p.month}/${p.day}`,
-  };
-}
-
-export interface FmtTime {
-  /** 24h "HH:MM". */
-  hhmm: string;
-  /** 12h "H:MM" (no am/pm). */
-  h12: string;
-  ampm: 'AM' | 'PM';
-  parts: TzParts;
-}
-
-export function fmtTime(tz: string, date: Date): FmtTime {
-  const p = tzParts(tz, date);
-  const ampm = p.h < 12 ? 'AM' : 'PM';
-  let h12 = p.h % 12;
-  if (h12 === 0) h12 = 12;
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return {
-    hhmm: `${pad(p.h)}:${pad(p.mi)}`,
-    h12: `${h12}:${pad(p.mi)}`,
-    ampm,
-    parts: p,
-  };
-}
-
-export function fmtOffset(min: number): string {
-  const s = min < 0 ? '−' : '+';
-  const a = Math.abs(min);
-  return `UTC${s}${String(Math.floor(a / 60)).padStart(2, '0')}:${String(
-    a % 60,
-  ).padStart(2, '0')}`;
-}
-
-export function fmtHour(h: number): string {
-  const ap = h < 12 ? 'am' : 'pm';
-  let x = h % 12;
-  if (x === 0) x = 12;
-  return x + ap;
-}
-
-/* ============================ Status ============================ */
-export function statusOf(m: Member, date: Date): Status {
-  const p = tzParts(m.tz, date);
-  const hour = p.h + p.mi / 60;
-  const onDay = m.days.includes(p.wd);
-  if (onDay && hour >= m.workStart && hour < m.workEnd) return 'work';
-  if (hour >= 7 && hour < 23) return 'awake';
-  return 'sleep';
-}
-
-export interface StatusMeta {
-  label: string;
-  /** CSS colour expression. */
-  color: string;
-  rank: number;
-}
-
-export const STATUS_META: Record<Status, StatusMeta> = {
-  work: { label: 'Working', color: 'var(--color-green)', rank: 0 },
-  awake: { label: 'Awake / off-hours', color: 'var(--color-amber)', rank: 1 },
-  sleep: { label: 'Asleep', color: 'var(--color-sleep)', rank: 2 },
-};
-
-/* ============================ Calendar helpers ============================ */
-/** Map a [start, end) window in member-local hours into reference hours,
- *  splitting across midnight. Returns 0–24 fractional bands. */
-export function bandsToRef(
-  start: number,
-  end: number,
-  deltaHours: number,
-): Array<[number, number]> {
-  let s = start + deltaHours;
-  let e = end + deltaHours;
-  while (s < 0) {
-    s += 24;
-    e += 24;
-  }
-  while (s >= 24) {
-    s -= 24;
-    e -= 24;
-  }
-  const out: Array<[number, number]> = [];
-  if (e <= 24) out.push([s, e]);
-  else {
-    out.push([s, 24]);
-    out.push([0, e - 24]);
-  }
-  return out.filter((b) => b[1] > b[0]);
-}
-
-/* ============================ Map helpers ============================ */
-export function coordsFor(m: Member, date: Date): [number, number] {
-  if (CITY[m.tz]) return CITY[m.tz];
-  const lon = (tzOffsetMin(m.tz, date) / 60) * 15;
-  const lat = (Math.abs(hashStr(m.tz)) % 60) - 30;
-  return [lat, Math.max(-179, Math.min(179, lon))];
-}
-
-/* ============================ Find zone by wall time ============================ */
-/** Given a wall-clock time string, find the IANA zone whose current offset
- *  best matches it. Prefers a zone with known map coords on exact ties. */
-export function findZoneFromTime(raw: string): string | null {
-  const mt = raw.trim().match(/^(\d{1,2}):?(\d{2})?\s*(am|pm)?$/i);
-  if (!mt) return null;
-  let h = +mt[1];
-  const mi = mt[2] ? +mt[2] : 0;
-  if (mt[3]) {
-    const pm = /pm/i.test(mt[3]);
-    if (pm && h < 12) h += 12;
-    if (!pm && h === 12) h = 0;
-  }
-  if (h > 23 || mi > 59) return null;
-
-  const now = new Date();
-  const utcMin = now.getUTCHours() * 60 + now.getUTCMinutes();
-  let target = h * 60 + mi - utcMin;
-  while (target <= -720) target += 1440;
-  while (target > 840) target -= 1440;
-
-  let best: string | null = null;
-  let bestDiff = Infinity;
-  for (const z of supportedTimeZones()) {
-    const off = tzOffsetMin(z, now);
-    let diff = Math.abs(off - target);
-    diff = Math.min(diff, 1440 - diff);
-    if (diff < bestDiff) {
-      bestDiff = diff;
-      best = z;
-    }
-    if (diff === 0 && CITY[z]) {
-      best = z;
-      break;
-    }
-  }
-  return best;
-}
-
-/** True when the runtime accepts the zone string. */
-export function isValidTz(tz: string): boolean {
-  try {
-    Intl.DateTimeFormat('en-US', { timeZone: tz });
+    getFormatter(zone, { hour: '2-digit' });
     return true;
   } catch {
     return false;
   }
+}
+
+/** "14:05" in the given zone. */
+export function formatTime(instantMs: number, zone: string): string {
+  return getFormatter(zone, { hour: '2-digit', minute: '2-digit', hour12: false }).format(instantMs);
+}
+
+/** "Fri, 3 Jul" in the given zone. */
+export function formatDay(instantMs: number, zone: string): string {
+  const parts = getFormatter(zone, { weekday: 'short', day: 'numeric', month: 'short' }).formatToParts(instantMs);
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? '';
+  return `${get('weekday')}, ${get('day')} ${get('month')}`;
+}
+
+/** Calendar date "2026-07-02" in the given zone, for same-day comparisons. */
+function isoDate(instantMs: number, zone: string): string {
+  const parts = getFormatter(zone, { year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(instantMs);
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? '';
+  return `${get('year')}-${get('month')}-${get('day')}`;
+}
+
+/** UTC offset of a zone at a given instant, in minutes. */
+export function zoneOffsetMinutes(zone: string, instantMs: number): number {
+  const parts = getFormatter(zone, { timeZoneName: 'longOffset' }).formatToParts(instantMs);
+  const name = parts.find((p) => p.type === 'timeZoneName')?.value ?? 'GMT';
+  const match = /GMT([+-])(\d{1,2})(?::(\d{2}))?/.exec(name);
+  if (!match) return 0;
+  const sign = match[1] === '-' ? -1 : 1;
+  return sign * (Number(match[2]) * 60 + Number(match[3] ?? 0));
+}
+
+/** "UTC+5:30" style label. */
+export function offsetLabel(offsetMinutes: number): string {
+  const sign = offsetMinutes < 0 ? '−' : '+';
+  const abs = Math.abs(offsetMinutes);
+  const h = Math.floor(abs / 60);
+  const m = abs % 60;
+  return `UTC${sign}${h}${m ? `:${String(m).padStart(2, '0')}` : ''}`;
+}
+
+/** Offset of `zone` relative to `referenceZone`: "same time", "+9h", "−3:30". */
+export function relativeLabel(zone: string, referenceZone: string, instantMs: number): string {
+  const diff = zoneOffsetMinutes(zone, instantMs) - zoneOffsetMinutes(referenceZone, instantMs);
+  if (diff === 0) return 'same time';
+  const sign = diff < 0 ? '−' : '+';
+  const abs = Math.abs(diff);
+  const h = Math.floor(abs / 60);
+  const m = abs % 60;
+  return `${sign}${h}${m ? `:${String(m).padStart(2, '0')}` : 'h'}`;
+}
+
+/** "", "Tomorrow" or "Yesterday" — `zone`'s calendar day vs the reference zone's. */
+export function dayDifferenceLabel(zone: string, referenceZone: string, instantMs: number): string {
+  const there = isoDate(instantMs, zone);
+  const here = isoDate(instantMs, referenceZone);
+  if (there === here) return '';
+  return there > here ? 'Tomorrow' : 'Yesterday';
+}
+
+const ETC_FALLBACK_ZONES = Array.from({ length: 27 }, (_, i) => {
+  const h = i - 12; // UTC-12 … UTC+14; Etc/GMT signs are inverted
+  return `Etc/GMT${h <= 0 ? '+' : '-'}${Math.abs(h)}`;
+});
+
+/**
+ * Guess an IANA zone from "what time is it for them right now" (hh:mm).
+ * Only a fixed offset can be derived, so the result drifts at DST changes —
+ * callers must mark the person as approximate.
+ */
+export function zoneFromLocalTime(hhmm: string, nowMs: number): string | null {
+  const match = /^(\d{1,2}):(\d{2})$/.exec(hhmm.trim());
+  if (!match) return null;
+  const h = Number(match[1]);
+  const m = Number(match[2]);
+  if (h > 23 || m > 59) return null;
+
+  const now = new Date(nowMs);
+  const utcMinutes = now.getUTCHours() * 60 + now.getUTCMinutes();
+  let diff = Math.round((h * 60 + m - utcMinutes) / 15) * 15;
+  while (diff < -720) diff += 1440;
+  while (diff > 840) diff -= 1440;
+
+  const zones = [...Intl.supportedValuesOf('timeZone'), ...ETC_FALLBACK_ZONES];
+  return zones.find((z) => isValidZone(z) && zoneOffsetMinutes(z, nowMs) === diff) ?? null;
 }

@@ -1,72 +1,53 @@
-import { useMemo } from 'react';
 import { useStore } from '@/store/useStore';
-import { useEvalDate } from '@/lib/useClock';
-import { fmtTime, shortTz, supportedTimeZones } from '@/lib/time';
-import { Button } from '@/components/ui/Button';
-import { SelectInput } from '@/components/ui/Field';
+import { Tooltip } from './ui/Tooltip';
+import { cn } from '@/lib/cn';
+
+function offsetText(minutes: number): string {
+  const sign = minutes < 0 ? '−' : '+';
+  const abs = Math.abs(minutes);
+  const h = Math.floor(abs / 60);
+  const m = abs % 60;
+  return `${sign}${h}h${m ? ` ${m}m` : ''}`;
+}
 
 export function Scrubber() {
-  const scrubOffsetMin = useStore((s) => s.scrubOffsetMin);
-  const setScrub = useStore((s) => s.setScrub);
-  const resetScrub = useStore((s) => s.resetScrub);
-  const refTz = useStore((s) => s.settings.refTz);
-  const setRefTz = useStore((s) => s.setRefTz);
-  const d = useEvalDate();
-
-  const zones = useMemo(() => supportedTimeZones(), []);
-  const live = scrubOffsetMin === 0;
-
-  let label: string;
-  if (live) {
-    label = 'Live — now';
-  } else {
-    const sign = scrubOffsetMin > 0 ? '+' : '−';
-    const a = Math.abs(scrubOffsetMin);
-    const h = Math.floor(a / 60);
-    const mi = a % 60;
-    label = `Preview ${fmtTime(refTz, d).hhmm} (${sign}${h}h${mi ? ' ' + mi + 'm' : ''})`;
-  }
+  const scrubMinutes = useStore((s) => s.scrubMinutes);
+  const isLive = useStore((s) => s.isLive);
+  const setScrubMinutes = useStore((s) => s.setScrubMinutes);
+  const resetToNow = useStore((s) => s.resetToNow);
 
   return (
-    <div className="flex flex-wrap items-center gap-[14px] border-b border-line bg-panel px-[22px] py-3">
-      <span className="text-xs font-bold uppercase tracking-[0.6px] text-muted">
-        Time
-      </span>
-      <input
-        type="range"
-        className="scrub-range min-w-[200px] flex-1"
-        min={-720}
-        max={720}
-        step={15}
-        value={scrubOffsetMin}
-        onChange={(e) => setScrub(+e.target.value)}
-      />
-      <div
-        className={`tnum min-w-[230px] font-bold ${
-          live ? 'text-green' : 'text-amber'
-        }`}
+    <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3">
+      <span
+        className={cn(
+          'w-16 shrink-0 text-xs font-semibold tabular-nums',
+          isLive ? 'text-accent dark:text-grey-300' : 'text-grey-500',
+        )}
       >
-        {label}
-      </div>
-      {!live && (
-        <Button variant="ghost" onClick={resetScrub}>
-          Reset to now
-        </Button>
-      )}
-      <span className="ml-[6px] text-xs font-bold uppercase tracking-[0.6px] text-muted">
-        Reference
+        {isLive ? '● LIVE' : offsetText(scrubMinutes)}
       </span>
-      <SelectInput
-        className="w-auto py-[7px]"
-        value={refTz}
-        onChange={(e) => setRefTz(e.target.value)}
-      >
-        {zones.map((z) => (
-          <option key={z} value={z}>
-            {shortTz(z)}
-          </option>
-        ))}
-      </SelectInput>
+      <Tooltip label="Drag to preview up to ±12h from now" className="flex-1">
+        <input
+          type="range"
+          min={-720}
+          max={720}
+          step={15}
+          value={scrubMinutes}
+          onChange={(e) => setScrubMinutes(Number(e.target.value))}
+          aria-label="Preview the team up to 12 hours before or after now"
+          className="h-1.5 w-full"
+        />
+      </Tooltip>
+      <Tooltip label="Snap back to live time">
+        <button
+          type="button"
+          onClick={resetToNow}
+          disabled={isLive}
+          className="shrink-0 rounded-lg border border-grey-300 px-2.5 py-1 text-xs font-medium text-grey-600 transition hover:border-accent hover:text-accent disabled:opacity-40 dark:border-grey-700 dark:text-grey-300 dark:hover:border-grey-400 dark:hover:text-grey-100"
+        >
+          Now
+        </button>
+      </Tooltip>
     </div>
   );
 }

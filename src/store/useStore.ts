@@ -1,222 +1,109 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { CalMode, Member, MemberDraft, Team, ViewId } from '@/types';
-import { colorFor, uid } from '@/lib/util';
-import { guessLocalTz } from '@/lib/time';
+import citiesData from '@/data/cities.json';
+import type { CityEntry, Person, PersonDraft, Theme } from '@/types';
+import { browserZone } from '@/lib/time';
 
-const STORE_KEY = 'teamzone.v2';
-/** Legacy keys from the single-file v1 app, migrated on first load. */
-const V1_MEMBERS = 'teamzone.members.v1';
-const V1_VIEW = 'teamzone.view.v1';
-const V1_REFTZ = 'teamzone.reftz';
+interface TeamzoneState {
+  people: Person[];
+  /** The single reference instant (ms). Every clock and the terminator read this. */
+  referenceInstant: number;
+  isLive: boolean;
+  /** Scrubber offset applied to "now", −720…720 minutes. 0 = live. */
+  scrubMinutes: number;
+  /** Anchors the navbar clock and relative labels only — never the instant. */
+  referenceZoneId: string;
+  roleFilter: string;
+  theme: Theme;
 
-interface Settings {
-  refTz: string;
-  view: ViewId;
-  calMode: CalMode;
+  addPerson: (draft: PersonDraft) => void;
+  editPerson: (id: string, patch: Partial<PersonDraft>) => void;
+  removePerson: (id: string) => void;
+  movePerson: (fromId: string, toId: string) => void;
+  importPeople: (drafts: PersonDraft[]) => void;
+  tick: () => void;
+  setScrubMinutes: (minutes: number) => void;
+  resetToNow: () => void;
+  setReferenceZone: (zoneId: string) => void;
+  setRoleFilter: (role: string) => void;
+  setTheme: (theme: Theme) => void;
 }
 
-interface PersistedState {
-  teams: Team[];
-  activeTeamId: string;
-  settings: Settings;
-}
+const uid = (): string =>
+  typeof crypto !== 'undefined' && 'randomUUID' in crypto
+    ? crypto.randomUUID()
+    : Math.random().toString(36).slice(2, 10);
 
-interface StoreState extends PersistedState {
-  /** Minutes offset from real "now" controlled by the scrubber (not persisted). */
-  scrubOffsetMin: number;
-
-  // ---- selectors ----
-  activeTeam: () => Team;
-  members: () => Member[];
-
-  // ---- team actions ----
-  addTeam: (name: string) => void;
-  renameTeam: (id: string, name: string) => void;
-  deleteTeam: (id: string) => void;
-  setActiveTeam: (id: string) => void;
-
-  // ---- member actions ----
-  addMember: (draft: MemberDraft) => void;
-  updateMember: (id: string, draft: MemberDraft) => void;
-  deleteMember: (id: string) => void;
-  replaceMembers: (members: Member[]) => void;
-
-  // ---- settings ----
-  setRefTz: (tz: string) => void;
-  setView: (view: ViewId) => void;
-  setCalMode: (mode: CalMode) => void;
-
-  // ---- scrubber ----
-  setScrub: (min: number) => void;
-  resetScrub: () => void;
-}
-
-function mkMember(
-  name: string,
-  role: string,
-  tz: string,
-  workStart: number,
-  workEnd: number,
-): Member {
-  return {
-    id: uid(),
-    name,
-    role,
-    tz,
-    workStart,
-    workEnd,
-    days: [1, 2, 3, 4, 5],
-    color: colorFor(name),
-  };
-}
-
-function seedTeam(): Team {
-  return {
-    id: uid('t'),
-    name: 'My Team',
-    members: [
-      mkMember('You', 'Team Lead', guessLocalTz(), 9, 17),
-      mkMember('Priya Sharma', 'Backend Engineer', 'Asia/Kolkata', 10, 18),
-      mkMember('Diego Morales', 'Designer', 'America/Mexico_City', 9, 17),
-      mkMember('Lena Fischer', 'PM', 'Europe/Berlin', 9, 17),
-      mkMember('Kenji Tanaka', 'Mobile Dev', 'Asia/Tokyo', 9, 18),
-    ],
-  };
-}
-
-/** Normalise an imported/legacy member object to the current shape. */
-function normalizeMember(m: Partial<Member>): Member {
-  return {
-    id: m.id || uid(),
-    name: m.name || 'Unnamed',
-    role: m.role || '',
-    tz: m.tz || 'UTC',
-    workStart: m.workStart ?? 9,
-    workEnd: m.workEnd ?? 17,
-    days: Array.isArray(m.days) ? m.days : [1, 2, 3, 4, 5],
-    color: m.color || colorFor(m.name || 'x'),
-  };
-}
-
-/** Build the starting persisted state, migrating from the v1 app if present. */
-function initialPersisted(): PersistedState {
-  let team: Team | null = null;
-  try {
-    const rawMembers = JSON.parse(localStorage.getItem(V1_MEMBERS) || 'null');
-    if (Array.isArray(rawMembers) && rawMembers.length) {
-      team = {
-        id: uid('t'),
-        name: 'My Team',
-        members: rawMembers.map(normalizeMember),
-      };
-    }
-  } catch {
-    /* ignore malformed legacy data */
-  }
-  if (!team) team = seedTeam();
-
-  const v1View = (localStorage.getItem(V1_VIEW) as ViewId) || 'now';
-  const v1Ref = localStorage.getItem(V1_REFTZ) || guessLocalTz();
-
-  return {
-    teams: [team],
-    activeTeamId: team.id,
-    settings: {
-      refTz: v1Ref,
-      view: ['now', 'calendar', 'map'].includes(v1View) ? v1View : 'now',
-      calMode: 'daily',
+/** Fresh sessions start with the user themself, not an empty list. Persisted
+ *  sessions rehydrate over this, so it never resurrects after deletion. */
+function defaultPeople(): Person[] {
+  const home = (citiesData as CityEntry[]).find((c) => c.timezoneId === browserZone);
+  return [
+    {
+      id: uid(),
+      name: 'You',
+      role: '',
+      timezoneId: browserZone,
+      city: home?.city ?? '',
+      lat: home?.lat ?? null,
+      lng: home?.lng ?? null,
     },
-  };
+  ];
 }
 
-/** Immutably update the members of the active team. */
-function mapActiveMembers(
-  state: StoreState,
-  fn: (members: Member[]) => Member[],
-): Pick<StoreState, 'teams'> {
-  return {
-    teams: state.teams.map((t) =>
-      t.id === state.activeTeamId ? { ...t, members: fn(t.members) } : t,
-    ),
-  };
-}
-
-export const useStore = create<StoreState>()(
+export const useStore = create<TeamzoneState>()(
   persist(
     (set, get) => ({
-      ...initialPersisted(),
-      scrubOffsetMin: 0,
+      people: defaultPeople(),
+      referenceInstant: Date.now(),
+      isLive: true,
+      scrubMinutes: 0,
+      referenceZoneId: browserZone,
+      roleFilter: '',
+      theme: 'auto',
 
-      activeTeam: () => {
-        const { teams, activeTeamId } = get();
-        return teams.find((t) => t.id === activeTeamId) || teams[0];
+      addPerson: (draft) => set({ people: [...get().people, { ...draft, id: uid() }] }),
+
+      editPerson: (id, patch) =>
+        set({ people: get().people.map((p) => (p.id === id ? { ...p, ...patch } : p)) }),
+
+      removePerson: (id) => set({ people: get().people.filter((p) => p.id !== id) }),
+
+      movePerson: (fromId, toId) => {
+        const people = [...get().people];
+        const from = people.findIndex((p) => p.id === fromId);
+        const to = people.findIndex((p) => p.id === toId);
+        if (from < 0 || to < 0 || from === to) return;
+        const [moved] = people.splice(from, 1);
+        people.splice(to, 0, moved);
+        set({ people });
       },
-      members: () => get().activeTeam()?.members ?? [],
 
-      addTeam: (name) =>
-        set((s) => {
-          const team: Team = { id: uid('t'), name: name.trim() || 'New Team', members: [] };
-          return { teams: [...s.teams, team], activeTeamId: team.id };
+      importPeople: (drafts) =>
+        set({ people: [...get().people, ...drafts.map((d) => ({ ...d, id: uid() }))] }),
+
+      tick: () => set({ referenceInstant: Date.now() + get().scrubMinutes * 60_000 }),
+
+      setScrubMinutes: (minutes) =>
+        set({
+          scrubMinutes: minutes,
+          isLive: minutes === 0,
+          referenceInstant: Date.now() + minutes * 60_000,
         }),
-      renameTeam: (id, name) =>
-        set((s) => ({
-          teams: s.teams.map((t) =>
-            t.id === id ? { ...t, name: name.trim() || t.name } : t,
-          ),
-        })),
-      deleteTeam: (id) =>
-        set((s) => {
-          if (s.teams.length <= 1) return s; // always keep at least one team
-          const teams = s.teams.filter((t) => t.id !== id);
-          const activeTeamId =
-            s.activeTeamId === id ? teams[0].id : s.activeTeamId;
-          return { teams, activeTeamId };
-        }),
-      setActiveTeam: (id) => set({ activeTeamId: id }),
 
-      addMember: (draft) =>
-        set((s) =>
-          mapActiveMembers(s, (ms) => [
-            ...ms,
-            {
-              ...draft,
-              id: uid(),
-              color: draft.color || colorFor(draft.name),
-            },
-          ]),
-        ),
-      updateMember: (id, draft) =>
-        set((s) =>
-          mapActiveMembers(s, (ms) =>
-            ms.map((m) =>
-              m.id === id
-                ? { ...m, ...draft, id: m.id, color: draft.color || m.color }
-                : m,
-            ),
-          ),
-        ),
-      deleteMember: (id) =>
-        set((s) => mapActiveMembers(s, (ms) => ms.filter((m) => m.id !== id))),
-      replaceMembers: (members) =>
-        set((s) => mapActiveMembers(s, () => members.map(normalizeMember))),
+      resetToNow: () => set({ scrubMinutes: 0, isLive: true, referenceInstant: Date.now() }),
 
-      setRefTz: (tz) => set((s) => ({ settings: { ...s.settings, refTz: tz } })),
-      setView: (view) => set((s) => ({ settings: { ...s.settings, view } })),
-      setCalMode: (calMode) =>
-        set((s) => ({ settings: { ...s.settings, calMode } })),
-
-      setScrub: (min) => set({ scrubOffsetMin: min }),
-      resetScrub: () => set({ scrubOffsetMin: 0 }),
+      setReferenceZone: (zoneId) => set({ referenceZoneId: zoneId }),
+      setRoleFilter: (role) => set({ roleFilter: role }),
+      setTheme: (theme) => set({ theme }),
     }),
     {
-      name: STORE_KEY,
-      version: 2,
-      // Persist only durable data; the scrubber is always live on reload.
-      partialize: (s): PersistedState => ({
-        teams: s.teams,
-        activeTeamId: s.activeTeamId,
-        settings: s.settings,
+      name: 'teamzone',
+      partialize: (s) => ({
+        people: s.people,
+        referenceZoneId: s.referenceZoneId,
+        roleFilter: s.roleFilter,
+        theme: s.theme,
       }),
     },
   ),

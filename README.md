@@ -1,40 +1,50 @@
-# TeamZone
+# Teamzone
 
-Visualize a remote team's local time and availability across time zones — at a
-glance, on a timeline, or on a world map.
+See your remote team's local time at a glance — on an interactive globe and a
+draggable list. Client-only single-page app: no login, no backend; data lives
+in `localStorage`.
 
-This is **v2**: a React + TypeScript rewrite of the original single-file app
-(preserved in [`legacy/index.html`](./legacy/index.html)).
+Durable decisions live in [`CLAUDE.md`](./CLAUDE.md); the build plan in
+[`PLAN.md`](./PLAN.md).
 
 ## Features
 
-- **Multiple named teams** — create, rename, switch, and delete teams. Each
-  holds its own roster.
-- **Sessions auto-save** to the browser (`localStorage`). Reload and your teams,
-  reference timezone, and current view are right where you left them. Data from
-  the original v1 app is migrated automatically on first load.
-- **Now view** — per-member cards with local time, UTC offset, day-difference,
-  and a Working / Awake / Asleep status, sorted by availability.
-- **Calendar view**
-  - _Daily overlap_ — each member's working and awake hours mapped onto a single
-    reference-timezone timeline, with a live "now" marker.
-  - _Weekly heatmap_ — how many teammates are working each hour of the week.
-- **Map view** — an equirectangular world map with a live day/night terminator,
-  the solar-noon point, and animated status pins.
-- **Time scrubber** — preview the whole team's availability up to ±12h from now.
-- **Reference timezone** — re-base every view to any zone.
-- **Add member by current time** — type what time it is for someone and TeamZone
-  finds a matching IANA zone.
-- **Import / Export** the active team's roster as JSON.
+- **People list** — initials avatars, role, city, live local time, offset
+  relative to the reference zone, day markers (Yesterday/Tomorrow).
+  Drag-to-reorder (`@dnd-kit`), role filter, edit/remove. A fresh session
+  starts with **"You"** in your own timezone, pinned to the globe.
+- **Globe** — D3 orthographic projection (SVG), centered on the equator by
+  default. Drag to spin (vertical tilt clamped to ±22.5°), reset-view button,
+  person markers with initials and local-time tooltips, live day/night
+  terminator.
+- **Time engine** — one reference instant drives every clock and the
+  terminator. A fixed bottom scrubber previews ±12h; reset-to-now snaps back
+  live. The reference-timezone picker is searchable (city, zone ID, or UTC
+  offset) while keeping the full browsable list.
+- **Add people by city** (fuzzy search over ~240 curated cities with IANA
+  zones + coordinates) or by their current local time (explicit "approximate"
+  fallback: fixed offset, no globe pin).
+- **Auto-dark** — theme follows daylight in the reference zone (scrub into
+  night and watch it flip), with a manual light/dark override.
+- **CSV import/export** — round-trips `name,role,timezoneId,city,lat,lng`;
+  invalid rows are reported and skipped.
+- **Tooltips everywhere** — every control explains itself on hover or
+  keyboard focus.
+
+All timezone math uses the platform `Intl` API with IANA zone IDs, so it is
+DST-correct.
 
 ## Tech stack
 
-- [React 19](https://react.dev) + [TypeScript](https://www.typescriptlang.org/)
-- [Vite](https://vite.dev) (dev server + build)
-- [Tailwind CSS v4](https://tailwindcss.com)
-- [Zustand](https://github.com/pmndrs/zustand) with the `persist` middleware
-
-All timezone math uses the platform `Intl` API, so it is DST-correct.
+- [Vite](https://vite.dev) + [React 19](https://react.dev) + TypeScript
+- [Tailwind CSS v4](https://tailwindcss.com) — greyscale design tokens with a
+  single `#1C4746` accent; Plus Jakarta Sans (headings) + Inter (body),
+  self-hosted via Fontsource
+- [Zustand](https://github.com/pmndrs/zustand) with `persist` → localStorage
+- [d3-geo](https://d3js.org/d3-geo) + world-atlas topojson for the globe
+- [@dnd-kit](https://dndkit.com) for drag-to-reorder,
+  [PapaParse](https://www.papaparse.com) for CSV import,
+  [Fuse.js](https://fusejs.io) for fuzzy city search
 
 ## Getting started
 
@@ -43,33 +53,29 @@ npm install
 npm run dev        # http://localhost:5173
 ```
 
-## Scripts
-
-| Command             | Description                              |
-| ------------------- | ---------------------------------------- |
-| `npm run dev`       | Start the Vite dev server with HMR       |
+| Command             | Description                                |
+| ------------------- | ------------------------------------------ |
+| `npm run dev`       | Vite dev server with HMR                   |
 | `npm run build`     | Type-check (`tsc -b`) and build to `dist/` |
-| `npm run preview`   | Preview the production build locally     |
-| `npm run typecheck` | Type-check only                          |
+| `npm run preview`   | Preview the production build               |
+| `npm run typecheck` | Type-check only                            |
 
 ## Deploying
 
-`npm run build` emits a static site to `dist/`. Drop it on any static host
-(Netlify, Vercel, GitHub Pages, S3, …) — there is no backend.
-
-> Note: the Map view loads its base world image from Wikimedia Commons, so that
-> view needs an internet connection to show the map texture (pins and the
-> day/night terminator still render offline).
+`npm run build` emits a fully static `dist/` — drop it on Cloudflare Pages
+(preferred), Vercel, or Netlify. Build command `npm run build`, output dir
+`dist`. No server, no DB.
 
 ## Project structure
 
 ```
 src/
-  lib/         time/timezone math, city coords, helpers, hooks
-  store/       Zustand store (teams, members, settings, persistence)
-  components/
-    ui/        Button, Modal, Field, Toast primitives
-    views/     NowView, CalendarView, MapView
-    Header, Scrubber, TeamSwitcher, MemberDialog, EmptyState
-  App.tsx, main.tsx
+  assets/icons/      SVG icon sources (inlined into components/icons.tsx)
+  data/cities.json   curated cities (city, country, IANA zone, lat, lng)
+  lib/               time (Intl helpers), solar (sub-solar point), csv, avatar
+  store/useStore.ts  Zustand store + persist (people, reference instant, prefs)
+  hooks/             useTick (15s clock), useTheme (auto-dark)
+  components/        Navbar, ZonePicker, Scrubber, Globe, PersonList/Row,
+                     PersonForm, CityPicker, icons, ui/Modal, ui/Tooltip
+  App.tsx            responsive shell (side-by-side / stacked / tabs)
 ```

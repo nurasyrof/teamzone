@@ -1,35 +1,28 @@
-/** A single teammate. Work hours are whole-hour local times [start, end). */
-export interface Member {
+/** Store IANA timezone IDs, never fixed UTC offsets — see CLAUDE.md. */
+export interface Person {
   id: string;
   name: string;
   role: string;
-  /** IANA timezone, e.g. "Asia/Tokyo". */
-  tz: string;
-  /** Local hour work begins, 0–24. */
-  workStart: number;
-  /** Local hour work ends, 0–24. */
-  workEnd: number;
-  /** Work days as JS weekday indices (0 = Sun … 6 = Sat). */
-  days: number[];
-  /** Avatar accent colour (hex). */
-  color: string;
+  /** IANA zone, e.g. "America/New_York". */
+  timezoneId: string;
+  /** Display label, e.g. "New York". Empty for the hh:mm fallback. */
+  city: string;
+  /** Globe placement. Null when the person was added via the hh:mm fallback. */
+  lat: number | null;
+  lng: number | null;
+  accentSeed?: string;
+  /** True when the zone was guessed from a typed local time (drifts at DST). */
+  approximate?: boolean;
 }
 
-/** A named group of members. The app can hold several. */
-export interface Team {
-  id: string;
-  name: string;
-  members: Member[];
+export type PersonDraft = Omit<Person, 'id'>;
+
+export interface CityEntry {
+  city: string;
+  country: string;
+  timezoneId: string;
+  lat: number;
+  lng: number;
 }
 
-export type ViewId = 'now' | 'calendar' | 'map';
-export type CalMode = 'daily' | 'weekly';
-
-/** Three buckets a member falls into at a given instant. */
-export type Status = 'work' | 'awake' | 'sleep';
-
-/** Draft shape used by the add/edit member form. */
-export type MemberDraft = Omit<Member, 'id' | 'color'> & {
-  id?: string;
-  color?: string;
-};
+export type Theme = 'auto' | 'light' | 'dark';

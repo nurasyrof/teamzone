@@ -5,25 +5,23 @@ interface ModalProps {
   title: string;
   onClose: () => void;
   children: ReactNode;
-  /** Rendered in the footer, right-aligned. */
-  footer?: ReactNode;
 }
 
-export function Modal({ open, title, onClose, children, footer }: ModalProps) {
+export function Modal({ open, title, onClose, children }: ModalProps) {
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
   }, [open, onClose]);
 
   if (!open) return null;
 
   return (
     <div
-      className="fixed inset-0 z-50 grid place-items-center bg-[rgba(20,24,40,0.35)] p-5 backdrop-blur-[2px]"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-grey-900/40 p-4 dark:bg-black/60"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -32,17 +30,10 @@ export function Modal({ open, title, onClose, children, footer }: ModalProps) {
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="max-h-[90vh] w-[min(520px,100%)] overflow-auto border border-line bg-panel shadow-float"
+        className="w-full max-w-md rounded-2xl border border-grey-200 bg-white p-5 shadow-xl dark:border-grey-800 dark:bg-grey-900"
       >
-        <h2 className="m-0 border-b border-line px-[22px] py-5 text-[17px] font-semibold">
-          {title}
-        </h2>
-        <div className="grid gap-4 px-[22px] py-5">{children}</div>
-        {footer && (
-          <div className="flex items-center justify-end gap-[10px] border-t border-line px-[22px] py-4">
-            {footer}
-          </div>
-        )}
+        <h2 className="mb-4 font-heading text-lg font-bold">{title}</h2>
+        {children}
       </div>
     </div>
   );
