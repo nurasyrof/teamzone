@@ -15,8 +15,9 @@ import {
 } from '@dnd-kit/sortable';
 import { useStore } from '@/store/useStore';
 import { PersonRow } from './PersonRow';
-import { IconPlus } from './icons';
+import { IconPencil, IconPlus } from './icons';
 import { Tooltip } from './ui/Tooltip';
+import { Dropdown } from './ui/Dropdown';
 import { downloadCsv, parseCsvFile } from '@/lib/csv';
 
 interface PersonListProps {
@@ -25,6 +26,8 @@ interface PersonListProps {
 }
 
 export function PersonList({ onAdd, onEdit }: PersonListProps) {
+  const teamName = useStore((s) => s.teamName);
+  const setTeamName = useStore((s) => s.setTeamName);
   const people = useStore((s) => s.people);
   const roleFilter = useStore((s) => s.roleFilter);
   const setRoleFilter = useStore((s) => s.setRoleFilter);
@@ -33,6 +36,17 @@ export function PersonList({ onAdd, onEdit }: PersonListProps) {
 
   const fileRef = useRef<HTMLInputElement>(null);
   const [importStatus, setImportStatus] = useState('');
+  const [editingName, setEditingName] = useState(false);
+  const [nameDraft, setNameDraft] = useState('');
+
+  const startRename = () => {
+    setNameDraft(teamName);
+    setEditingName(true);
+  };
+  const commitRename = () => {
+    setTeamName(nameDraft);
+    setEditingName(false);
+  };
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -66,26 +80,48 @@ export function PersonList({ onAdd, onEdit }: PersonListProps) {
   return (
     <div>
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        <h2 className="font-heading text-base font-bold">
-          People <span className="font-normal text-grey-400">({people.length})</span>
-        </h2>
+        {editingName ? (
+          <input
+            autoFocus
+            type="text"
+            value={nameDraft}
+            onChange={(e) => setNameDraft(e.target.value)}
+            onBlur={commitRename}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') commitRename();
+              else if (e.key === 'Escape') setEditingName(false);
+            }}
+            aria-label="Team name"
+            placeholder="My team"
+            className="w-44 rounded-md border border-grey-300 bg-white px-2 py-1 font-heading text-base font-bold outline-none focus:border-accent dark:border-grey-700 dark:bg-grey-950"
+          />
+        ) : (
+          <h2 className="flex items-center gap-1.5 font-heading text-base font-bold">
+            <span className="max-w-56 truncate">{teamName}</span>
+            <span className="font-normal text-grey-400">({people.length})</span>
+            <Tooltip label="Rename team">
+              <button
+                type="button"
+                onClick={startRename}
+                aria-label="Rename team"
+                className="flex items-center rounded p-1 text-grey-400 hover:text-accent dark:hover:text-grey-100"
+              >
+                <IconPencil className="size-3.5" />
+              </button>
+            </Tooltip>
+          </h2>
+        )}
         <div className="ml-auto flex items-center gap-2">
           {roles.length > 0 && (
-            <Tooltip label="Show only one role">
-              <select
-                value={roleFilter}
-                onChange={(e) => setRoleFilter(e.target.value)}
-                aria-label="Filter by role"
-                className="rounded-lg border border-grey-300 bg-white px-2 py-1.5 text-xs text-grey-600 outline-none focus:border-accent dark:border-grey-700 dark:bg-grey-950 dark:text-grey-300"
-              >
-                <option value="">All roles</option>
-                {roles.map((r) => (
-                  <option key={r} value={r}>
-                    {r}
-                  </option>
-                ))}
-              </select>
-            </Tooltip>
+            <Dropdown
+              value={roleFilter}
+              onChange={setRoleFilter}
+              ariaLabel="Filter by role"
+              options={[
+                { value: '', label: 'All roles' },
+                ...roles.map((r) => ({ value: r, label: r })),
+              ]}
+            />
           )}
           <Tooltip label="Add people from a CSV file">
             <button

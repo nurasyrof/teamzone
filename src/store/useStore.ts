@@ -5,6 +5,7 @@ import type { CityEntry, Person, PersonDraft, Theme } from '@/types';
 import { browserZone } from '@/lib/time';
 
 interface TeamzoneState {
+  teamName: string;
   people: Person[];
   /** The single reference instant (ms). Every clock and the terminator read this. */
   referenceInstant: number;
@@ -16,6 +17,7 @@ interface TeamzoneState {
   roleFilter: string;
   theme: Theme;
 
+  setTeamName: (name: string) => void;
   addPerson: (draft: PersonDraft) => void;
   editPerson: (id: string, patch: Partial<PersonDraft>) => void;
   removePerson: (id: string) => void;
@@ -54,6 +56,7 @@ function defaultPeople(): Person[] {
 export const useStore = create<TeamzoneState>()(
   persist(
     (set, get) => ({
+      teamName: 'My team',
       people: defaultPeople(),
       referenceInstant: Date.now(),
       isLive: true,
@@ -61,6 +64,8 @@ export const useStore = create<TeamzoneState>()(
       referenceZoneId: browserZone,
       roleFilter: '',
       theme: 'auto',
+
+      setTeamName: (name) => set({ teamName: name.trim() || 'My team' }),
 
       addPerson: (draft) => set({ people: [...get().people, { ...draft, id: uid() }] }),
 
@@ -100,6 +105,7 @@ export const useStore = create<TeamzoneState>()(
     {
       name: 'teamzone',
       partialize: (s) => ({
+        teamName: s.teamName,
         people: s.people,
         referenceZoneId: s.referenceZoneId,
         roleFilter: s.roleFilter,
