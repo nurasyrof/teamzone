@@ -15,17 +15,10 @@ import {
 } from '@dnd-kit/sortable';
 import { useStore } from '@/store/useStore';
 import { PersonRow } from './PersonRow';
-import {
-  IconDownload,
-  IconPencil,
-  IconPlus,
-  IconToggleOff,
-  IconToggleOn,
-  IconUpload,
-} from './icons';
+import { IconPencil, IconPlus, IconToggleOff, IconToggleOn, IconUpload } from './icons';
 import { Tooltip } from './ui/Tooltip';
 import { Dropdown } from './ui/Dropdown';
-import { downloadCsv, parseCsvFile } from '@/lib/csv';
+import { parseCsvFile } from '@/lib/csv';
 import { hourInZone } from '@/lib/time';
 import { cn } from '@/lib/cn';
 
@@ -139,14 +132,16 @@ export function PersonList({ onAdd, onEdit }: PersonListProps) {
               aria-checked={daytimeOnly}
               aria-label="Daytime only"
               className={cn(
-                'flex items-center gap-1.5 text-xs font-medium',
-                daytimeOnly ? 'text-accent dark:text-grey-100' : 'text-grey-500',
+                'flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium',
+                daytimeOnly
+                  ? 'border-accent text-accent dark:border-grey-400 dark:text-grey-100'
+                  : 'border-grey-300 text-grey-500 dark:border-grey-700',
               )}
             >
               {daytimeOnly ? (
-                <IconToggleOn className="size-5" />
+                <IconToggleOn className="size-4" />
               ) : (
-                <IconToggleOff className="size-5" />
+                <IconToggleOff className="size-4" />
               )}
               Daytime only
             </button>
@@ -166,21 +161,10 @@ export function PersonList({ onAdd, onEdit }: PersonListProps) {
             <button
               type="button"
               onClick={() => fileRef.current?.click()}
-              aria-label="Import CSV"
-              className="flex items-center rounded-lg border border-grey-300 p-1.5 text-grey-600 hover:border-accent hover:text-accent dark:border-grey-700 dark:text-grey-300 dark:hover:border-grey-400 dark:hover:text-grey-100"
+              className="flex items-center gap-1.5 rounded-lg border border-grey-300 px-2.5 py-1.5 text-xs font-medium text-grey-600 hover:border-accent hover:text-accent dark:border-grey-700 dark:text-grey-300 dark:hover:border-grey-400 dark:hover:text-grey-100"
             >
               <IconUpload className="size-4" />
-            </button>
-          </Tooltip>
-          <Tooltip label="Download the roster as CSV">
-            <button
-              type="button"
-              onClick={() => downloadCsv(people)}
-              disabled={people.length === 0}
-              aria-label="Export CSV"
-              className="flex items-center rounded-lg border border-grey-300 p-1.5 text-grey-600 hover:border-accent hover:text-accent disabled:opacity-40 dark:border-grey-700 dark:text-grey-300 dark:hover:border-grey-400 dark:hover:text-grey-100"
-            >
-              <IconDownload className="size-4" />
+              Import
             </button>
           </Tooltip>
           <input

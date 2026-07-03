@@ -51,8 +51,9 @@ Durable decisions live in [`CLAUDE.md`](./CLAUDE.md); the build plan in
   zones and coordinates — exact, DST-proof, and globe-pinned.
 - **By their current local time** (fallback): guesses a matching zone from
   hh:mm, clearly marked ≈ approximate (fixed offset, no globe pin).
-- **CSV import/export** via the upload/download buttons — round-trips
-  `name,role,timezoneId,city,lat,lng`; invalid rows are reported and skipped.
+- **CSV import** — bring a whole roster at once with
+  `name,role,timezoneId,city,lat,lng` columns; invalid rows are reported and
+  skipped.
 
 ### UI & visuals
 

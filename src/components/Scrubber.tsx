@@ -1,4 +1,5 @@
 import { useStore } from '@/store/useStore';
+import { IconScrubSlider } from './icons';
 import { Tooltip } from './ui/Tooltip';
 import { cn } from '@/lib/cn';
 
@@ -20,11 +21,12 @@ export function Scrubber() {
     <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3">
       <span
         className={cn(
-          'w-16 shrink-0 text-xs font-semibold tabular-nums',
+          'flex w-20 shrink-0 items-center gap-1.5 text-xs font-semibold tabular-nums',
           isLive ? 'text-accent dark:text-grey-300' : 'text-grey-500',
         )}
       >
-        {isLive ? '● LIVE' : offsetText(scrubMinutes)}
+        <IconScrubSlider className="size-4 shrink-0" />
+        {isLive ? 'LIVE' : offsetText(scrubMinutes)}
       </span>
       <Tooltip label="Drag to preview up to ±12h from now" className="flex-1">
         <input
